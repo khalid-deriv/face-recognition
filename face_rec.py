@@ -1,9 +1,23 @@
-import face_recognition
-import time
 import cv2
 import numpy as np
+import face_recognition
+import time
+from firebase_admin import credentials, firestore, initialize_app, db
 
 size = 4
+
+# Initialize Firestore DB
+cred = credentials.Certificate('key.json')
+default_app = initialize_app(cred, {
+    'databaseURL': 'https://fevertracker-4bf99.firebaseio.com'
+})
+# db = firestore.client()
+db_ref = db.reference('door/open')
+
+def open_door():
+	door_status = db_ref.get()
+	if (door_status == "0"):
+		db_ref.set("1")
 
 picture_of_me = cv2.imread("khalid_ID.jpg")
 picture_of_me = cv2.cvtColor(picture_of_me, cv2.COLOR_BGR2RGB)
@@ -48,6 +62,8 @@ while True:
 		if results == True:
 			print("It's a picture of me!")
 			text = 'Khalid'
+			open_door()
+
 		else:
 			print("It's not a picture of me!")
 			text = 'unknown'
