@@ -53,22 +53,6 @@ def is_match(known_embedding, candidate_embedding, thresh=0.5):
 	else:
 		return False, score, thresh #print('>face is NOT a Match (%.3f > %.3f)' % (score, thresh))
 
-
-# Initialize Flask App
-# app = Flask(__name__)
-
-# Initialize Firestore DB
-cred = credentials.Certificate('key.json')
-default_app = initialize_app(cred, {
-    'databaseURL': 'https://fevertracker-4bf99.firebaseio.com'
-})
-# db = firestore.client()
-db_ref = db.reference('door/open')
-
-# Get and set methods for the door variable
-# db_ref.set(1)
-# door_status = db_ref.get()
-
 size = 4
 
 # load the model
@@ -80,7 +64,7 @@ classifier = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
 # load image database
 image_db = pd.read_csv('image_db.csv')
 
-webcam = cv2.VideoCapture(1) #Using default WebCam connected to the PC.
+webcam = cv2.VideoCapture(0) #Using default WebCam connected to the PC.
 
 while True:
 	(rval, im) = webcam.read()
@@ -122,7 +106,6 @@ while True:
 
 			match, score, thresh = is_match(embedding_main, embeddings[0])
 			if match:
-				db_ref.set(1)
 				print('>face is a Match with guest %s (%.3f <= %.3f)' % (row['name'], score, thresh))
 				grant = True
 		if not grant: print('>face is NOT a Match')

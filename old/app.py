@@ -16,5 +16,5 @@ bucket = storage.bucket(app=default_app)
 blob = bucket.blob('uploads/3')
 
 url = blob.generate_signed_url(datetime.timedelta(seconds=300), method='GET')
-# db = firestore.client()
-# todo_ref = db.collection('todos')
+
+print(url)
