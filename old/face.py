@@ -59,7 +59,7 @@ size = 4
 model = load_model('VGGFace.h5')
 
 # load the xml file
-classifier = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
+classifier = cv2.CascadeClassifier('../haarcascade_frontalface_alt.xml')
 
 # load image database
 image_db = pd.read_csv('image_db.csv')

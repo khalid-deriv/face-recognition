@@ -17,11 +17,22 @@ db_ref = db.reference('door/open')
 def open_door():
 	door_status = db_ref.get()
 	if (door_status == "0"):
-		db_ref.set("1")
+		# db_ref.set("1")
+		print("Door opened!")
+
+# Read images
 
 picture_of_me = cv2.imread("khalid_ID.jpg")
+picture_of_youssef = cv2.imread("youssef.jpg")
+picture_of_hosam = cv2.imread("hosam.jpg")
+# Convert to RGB
 picture_of_me = cv2.cvtColor(picture_of_me, cv2.COLOR_BGR2RGB)
+picture_of_youssef = cv2.cvtColor(picture_of_youssef, cv2.COLOR_BGR2RGB)
+picture_of_hosam = cv2.cvtColor(picture_of_hosam, cv2.COLOR_BGR2RGB)
+# Get encoding
 my_face_encoding = face_recognition.face_encodings(picture_of_me)[0]
+youssef_encoding = face_recognition.face_encodings(picture_of_youssef)[0]
+hosam_encoding = face_recognition.face_encodings(picture_of_hosam)[0]
 
 # load the xml HAAR cascade file
 classifier = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
@@ -39,6 +50,7 @@ while True:
 	faces = classifier.detectMultiScale(mini)
 
 	text = ''
+	status = ''
 
 	if len(faces) > 0:
 		# get the first face only
@@ -55,21 +67,34 @@ while True:
 			unknown_face_encoding = face_recognition.face_encodings(sub_face)[0]
 
 			# Compare the faces
-			results = face_recognition.compare_faces([my_face_encoding], unknown_face_encoding)[0]
+			results = face_recognition.compare_faces([my_face_encoding, youssef_encoding, hosam_encoding], unknown_face_encoding)
 		except:
-			results = False
+			results = [False, False, False]
 
-		if results == True:
-			print("It's a picture of me!")
+		if results[0] == True:
+			print("It's a match!")
 			text = 'Khalid'
+			status = 'Infected'
+			# open_door()
+			print("Entry denied!")
+		elif results[1] == True:
+			print("It's a match!")
+			text = 'Youssef'
+			status = 'Suspected'
+			open_door()
+		elif results[2] == True:
+			print("It's a match!")
+			text = 'Hosam'
+			status = 'Healthy'
 			open_door()
 
 		else:
-			print("It's not a picture of me!")
+			print("It's not a match!")
 			text = 'unknown'
 
 		font = cv2.FONT_HERSHEY_TRIPLEX
-		cv2.putText(im, text,(x+w,y), font, 1, (0,0,255), 2)
+		cv2.putText(im, text,(x+w+5,y), font, 1, (255,0,0), 2)
+		cv2.putText(im, status,(x+w+5,y+30), font, 0.8, (0,0,255), 1)
 
 	# Show the image
 	cv2.imshow('Capture', im)
