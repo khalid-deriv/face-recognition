@@ -16,12 +16,8 @@ default_app = initialize_app(cred, {
 })
 bucket = storage.bucket(app=default_app)
 
-start = time.time()
 blobs = bucket.list_blobs()
-end = time.time()
-time_taken = float(end - start)
 
-count = 0
 # time_taken = 0
 for blob in blobs:
 	url = blob.generate_signed_url(datetime.timedelta(seconds=300), method='GET')
@@ -42,7 +38,6 @@ for blob in blobs:
 		results = False
 
 	print(results, blob.name)
-	count += 1
 # end = time.time()
 
 print("Total time taken:", str(time_taken), "seconds")
