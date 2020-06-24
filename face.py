@@ -10,12 +10,12 @@ from firebase_admin import credentials, firestore, storage, initialize_app, db
 
 size = 4
 
-# Initialize Firestore DB
+# Initialize Firestore and realtime DB
 cred = credentials.Certificate('key.json')
 default_app = initialize_app(cred, {
     'databaseURL': 'https://fevertracker-4bf99.firebaseio.com'
 })
-# db = firestore.client()
+firestore_db = firestore.client()
 db_ref = db.reference('door/alarm')
 notify_db = db.reference('notifications')
 
@@ -35,39 +35,47 @@ def detected(person_id):
 	})
 	print("Door opened!")
 
+def get_encodings_list(encodings):
+	ids = []
+	encodings_list = []
+	for itm in encodings:
+		ids.append(itm.id)
+		itm = itm.to_dict()
+		encodings_list.append(itm['face'])
+	return ids, encodings_list
+
+face_ref = firestore_db.collection(u'face_encoding')
+
+list_of_files = glob.glob('faces/*.jpg')
+files_count = len(list_of_files)
+previous_files_count = 0
+
 # Read images
 while True:
-	list_of_files = glob.glob('*.jpg')
-	latest_file = max(list_of_files, key=os.path.getctime)
+	if files_count > previous_files_count:
+		time.sleep(1)
+		latest_file = max(list_of_files, key=os.path.getctime)
 
-	picture = cv2.imread(latest_file)
+		picture = cv2.imread(latest_file)
 
-	# # Convert to RGB
-	picture = cv2.cvtColor(picture, cv2.COLOR_BGR2RGB)
+		# # Convert to RGB
+		picture = cv2.cvtColor(picture, cv2.COLOR_BGR2RGB)
 
-	# # Get encoding
-	my_face_encoding = face_recognition.face_encodings(picture)[0]
+		# # Get encoding
+		my_face_encoding = face_recognition.face_encodings(picture)[0]
 
-	blobs = bucket.list_blobs()
-
-	# time_taken = 0
-	for blob in blobs:
-		url = blob.generate_signed_url(datetime.timedelta(seconds=300), method='GET')
-		img = io.imread(url)
-
-		# resize image
-		dim = (640, 640)
-		resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
-		img = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-
+		ids, face_encodings = get_encodings_list(face_ref.stream())
 		try:
-			# get the encoding of the unknoown face
-			unknown_face_encoding = face_recognition.face_encodings(img)[0]
-
 			# Compare the faces
-			results = face_recognition.compare_faces([my_face_encoding], unknown_face_encoding)[0]
+			results = face_recognition.compare_faces(face_encodings, my_face_encoding)
 		except Exception as e:
 			print(e)
 			results = False
-		if results : detected(blob.name[-2:])
-		print(results, blob.name[-2:])
+		for i in range(len(results)):
+			if results[i]: detected(ids[i])
+
+		previous_files_count = files_count
+	
+	list_of_files = glob.glob('faces/*.jpg')
+	files_count = len(list_of_files)
+	print(files_count)

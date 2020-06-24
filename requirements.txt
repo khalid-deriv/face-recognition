@@ -1,0 +1,5 @@
+numpy==1.18.1
+opencv-python==4.2.0
+skcikit-image==0.15.0
+face_recognition==1.2.3
+firebase_admin==4.1.0
