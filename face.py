@@ -2,10 +2,12 @@ import cv2
 import numpy as np
 import face_recognition
 from skimage import io
+from io import BytesIO
 import os
 import time
 import datetime
 import glob
+from ftplib import FTP
 from firebase_admin import credentials, firestore, storage, initialize_app, db
 
 size = 4
@@ -33,7 +35,7 @@ def detected(person_id):
 		'type': 'blacklist detected',
 		'user_id': person_id
 	})
-	print("Door opened!")
+	print("Door Alarm!")
 
 def get_encodings_list(encodings):
 	ids = []
@@ -46,20 +48,34 @@ def get_encodings_list(encodings):
 
 face_ref = firestore_db.collection(u'face_encoding')
 
-list_of_files = glob.glob('faces/*.jpg')
-files_count = len(list_of_files)
-previous_files_count = 0
+# connect to FTP server
+ftp = FTP(host='ftp.fever-tracker.a2hosted.com', user='face@fever-tracker.a2hosted.com', passwd='EE1yKeY^1Y@K')
 
+ftp.cwd('/faces')
+
+# get all the file entries and reorder them by time modified
+entries = list(ftp.mlsd())
+entries.sort(key = lambda entry: entry[1]['modify'], reverse = True)
+# get the first element in the list, with the first attribute (name)
+latest_name = entries[2][0]
+
+# get the file data in bytes
+r = BytesIO()
+ftp.retrbinary('RETR ' + latest_name, r.write)
+value = r.getvalue()
+
+# convert from bytes to nparray image
+latest_file = cv2.imdecode(np.frombuffer(value, np.uint8), -1)
+
+files_count = len(entries)
+previous_files_count = 0
 # Read images
 while True:
-	if files_count > previous_files_count:
+	if files_count > previous_files_count and latest_name[-3:] == 'jpg':
 		time.sleep(1)
-		latest_file = max(list_of_files, key=os.path.getctime)
-
-		picture = cv2.imread(latest_file)
 
 		# # Convert to RGB
-		picture = cv2.cvtColor(picture, cv2.COLOR_BGR2RGB)
+		picture = cv2.cvtColor(latest_file, cv2.COLOR_BGR2RGB)
 
 		# # Get encoding
 		my_face_encoding = face_recognition.face_encodings(picture)[0]
@@ -76,6 +92,14 @@ while True:
 
 		previous_files_count = files_count
 	
-	list_of_files = glob.glob('faces/*.jpg')
-	files_count = len(list_of_files)
+	entries = list(ftp.mlsd())
+	entries.sort(key = lambda entry: entry[1]['modify'], reverse = True)
+	latest_name = entries[2][0]
+
+	r = BytesIO()
+	ftp.retrbinary('RETR ' + latest_name, r.write)
+
+	value = r.getvalue()
+	latest_file = cv2.imdecode(np.frombuffer(value, np.uint8), -1)
+	files_count = len(entries)
 	print(files_count)
