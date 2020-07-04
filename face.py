@@ -33,7 +33,8 @@ def detected(person_id):
 		db_ref.set("1")
 	notify_db.push({
 		'type': 'blacklist detected',
-		'user_id': person_id
+		'user_id': person_id,
+		'time': int(time.time())
 	})
 	print("Door Alarm!")
 
@@ -57,7 +58,7 @@ ftp.cwd('/faces')
 entries = list(ftp.mlsd())
 entries.sort(key = lambda entry: entry[1]['modify'], reverse = True)
 # get the first element in the list, with the first attribute (name)
-latest_name = entries[2][0]
+latest_name = entries[3][0]
 
 # get the file data in bytes
 r = BytesIO()
@@ -77,24 +78,25 @@ while True:
 		# # Convert to RGB
 		picture = cv2.cvtColor(latest_file, cv2.COLOR_BGR2RGB)
 
-		# # Get encoding
-		my_face_encoding = face_recognition.face_encodings(picture)[0]
-
-		ids, face_encodings = get_encodings_list(face_ref.stream())
 		try:
+			# # Get encoding
+			my_face_encoding = face_recognition.face_encodings(picture)[0]
+
+			ids, face_encodings = get_encodings_list(face_ref.stream())
 			# Compare the faces
 			results = face_recognition.compare_faces(face_encodings, my_face_encoding)
 		except Exception as e:
 			print(e)
 			results = False
-		for i in range(len(results)):
-			if results[i]: detected(ids[i])
+		if results:
+			for i in range(len(results)):
+				if results[i]: detected(ids[i])
 
 		previous_files_count = files_count
 	
 	entries = list(ftp.mlsd())
 	entries.sort(key = lambda entry: entry[1]['modify'], reverse = True)
-	latest_name = entries[2][0]
+	latest_name = entries[3][0]
 
 	r = BytesIO()
 	ftp.retrbinary('RETR ' + latest_name, r.write)
